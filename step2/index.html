@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sample Page</title>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.361.0.min.js"></script>
+    <script>
+      const IdentityPoolId = 'us-east-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx';
+      const BucketRegion = 'us-east-1';
+      const BucketName = 'inquiry-incoming';
+
+      function sendInquiry() {
+        let now = new Date;
+        let inquiry = {
+          Date: now.toLocaleString(),
+          Name: document.forms.inquiry.name.value,
+          Text: document.forms.inquiry.text.value
+        };
+        let blob = new Blob([JSON.stringify(inquiry, null, 2)], {type: 'application/json'});
+
+        AWS.config.update({
+          region: BucketRegion,
+          credentials: new AWS.CognitoIdentityCredentials({
+            IdentityPoolId: IdentityPoolId
+          })
+        });
+
+        let s3 = new AWS.S3({
+          apiVersion: '2006-03-01',
+          params: {
+            Bucket: BucketName
+          }
+        });
+
+        let params = {
+          Body: blob,
+          Key: now.getTime() + '.json'
+        }
+
+        s3.putObject(params, function(err, data) {
+          if (!err) {
+            alert("お問い合わせを承りました");
+            document.forms.inquiry.reset();
+          } else {
+            alert("エラーが発生しました\n" + err);
+          }
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <h1>★お問い合わせフォーム★</h1>
+    <form name="inquiry">
+      <p>お名前：<input name="name" type="text" size="20" value="" /></p>
+      <p>お問い合わせ内容：<br><textarea name="text" rows="10" cols="40"></textarea></p>
+      <p><input onclick="sendInquiry();" type="button" value="送信" /></p>
+    </form>
+  </body>
+</html>
